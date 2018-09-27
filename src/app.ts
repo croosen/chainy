@@ -1,4 +1,5 @@
 import { sha256 } from "js-sha256";
+import axios, { AxiosResponse } from 'axios';
 
 // class Block
 export class Block {
@@ -34,15 +35,32 @@ export class Block {
     }
 }
 
+export class Node {
+    public id: number;
+    public address: string;
+
+    constructor(id: number, address: string) {
+        this.id = id;
+        this.address = address;
+    }
+}
+
 // class BlockChain
 export class BlockChain {
     private chain: Array<Block>;
+    public nodes: Set<Node> = new Set();
     public difficulty: number;
 
     // QUESTION how do we store a blockchain in a node? Memory? Database?
     constructor(md: number) {
         this.chain = new Array<Block>(new Block(0,0,"First!",""));
+        this.nodes = new Array<Node>();
         this.difficulty = md;
+    }
+
+    public registerNode(node: Node): void {
+        console.log("Registering node");
+        this.nodes.add(node);
     }
 
     public addBlock(block: Block): Block {
@@ -63,7 +81,6 @@ export class BlockChain {
         // push mined block to chain
         this.chain.push(block);
 
-        // ???
         return block;
     }
 
@@ -90,11 +107,30 @@ export class BlockChain {
 
         return block;
     }
+
+    // Sending block to other nodes
+    public async broadCastBlock(block: Block) {
+        for (const node of this.nodes) {
+          console.log(`Sending transaction to ${ node.address }`);
+          await axios.post(`http://${ node.address }/blocks`, block);
+        }
+        console.log('Broadcast done')
+    }
 }
 
 // create new blockchain with difficulty of 2
 // TODO difficulty is hardcoded to 00
 const chainy = new BlockChain(2);
+
+// create nodes
+const node1 = new Node(1, '127.0.0.1:8090');
+const node2 = new Node(2, '127.0.0.1:8091');
+const node3 = new Node(3, '127.0.0.1:8092');
+
+// register nodes to the blockchain
+chainy.registerNode(node1)
+chainy.registerNode(node2)
+chainy.registerNode(node3)
 
 // create new block
 const block1 = new Block(0,0,"First new block with some data","");
